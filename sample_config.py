@@ -28,17 +28,6 @@ STATIC_MEETINGS = {
 # ---------------------------------------------------------------------------
 DYNAMIC_SAMPLE = [
     {
-        # The old paper's 1994 validation context (1994-08-16) has no decision
-        # in the dynamic corpus; this is the nearest 1994 landmark — the first
-        # public post-meeting statement, adopted at the start of the same
-        # Greenspan tightening cycle.
-        "decision_ymd": "19940204",
-        "decision_id": "d001",
-        "short_name": "First policy statement (Feb 1994)",
-        "members": ["ANGELL", "MELZER", "BROADDUS", "PHILLIPS", "FORRESTAL", "GREENSPAN"],
-        "window": "all",  # 8 meetings: Feb 1993 - Dec 1993
-    },
-    {
         "decision_ymd": "20081216",
         "decision_id": "d006",
         "short_name": "ZLB established (Dec 2008)",
@@ -51,6 +40,13 @@ DYNAMIC_SAMPLE = [
         "short_name": "Calendar guidance (Aug 2011)",
         "members": ["KOCHERLAKOTA", "EVANS", "PLOSSER", "YELLEN", "LOCKHART", "BERNANKE"],
         "window": "all",  # 8 meetings: Aug 2010 - Jun 2011
+    },
+    {
+        "decision_ymd": "20151216",
+        "decision_id": "d008",
+        "short_name": "Liftoff (Dec 2015)",
+        "members": ["GEORGE", "KOCHERLAKOTA", "BRAINARD", "DUDLEY", "EVANS", "YELLEN"],
+        "window": "last8",  # Oct 2014 - Oct 2015 (full window is 12)
     },
     {
         # Audit slice: Claude scored every member 0 at every prior meeting for

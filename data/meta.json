@@ -1,6 +1,6 @@
 {
-  "built_at": "2026-07-06T15:50:59",
-  "data_version": "9bb1f5cdd85f",
+  "built_at": "2026-07-06T16:03:56",
+  "data_version": "b45b4f5465c7",
   "sources": {
     "transcripts": "E:\\Research Dropbox\\Ben Matthies\\NotreDame\\Research\\_earlystage\\fomctidy\\data\\transcripts.dta",
     "adopted_decisions": "E:\\Research Dropbox\\Ben Matthies\\NotreDame\\Research\\fed_wsj\\kv_analysis\\output_v5\\claude_output\\adopted_decisions.pkl",
@@ -27,7 +27,7 @@
     "scores_alignment.parquet": 569,
     "scores_adoption.parquet": 569,
     "dynamic_cells.parquet": 153,
-    "transcripts_view.parquet": 10402
+    "transcripts_view.parquet": 10394
   },
   "provenance_notes": [
     "Transcripts are read from Ben's Dropbox-synced copy of fomctidy; the scoring pipeline read the same file from Kaushik's Dropbox. The per-row quote_match statistics act as a cross-copy consistency check.",
@@ -47,10 +47,10 @@
       "total": 143
     },
     "dynamic": {
-      "found": 76,
-      "not_found": 10,
-      "partial": 4,
-      "total": 90
+      "found": 87,
+      "not_found": 14,
+      "partial": 9,
+      "total": 110
     }
   },
   "warnings": []
