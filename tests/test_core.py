@@ -189,11 +189,67 @@ def test_apps_import():
     check(True, "core.static_app / core.dynamic_app import")
 
 
+class _FakeSessionState:
+    def __init__(self):
+        self.records = {}
+
+
+class _FakeSt:
+    session_state = _FakeSessionState()
+
+
+def test_resume_prefers_started_work():
+    print("Resume-after-restore targeting:")
+    import core.dynamic_app as da
+    import core.static_app as sa
+
+    bundle = {
+        "speeches": pd.read_parquet(DATA / "static_speeches.parquet"),
+        "scores": pd.read_parquet(DATA / "scores_alignment.parquet"),
+        "decisions": pd.read_parquet(DATA / "static_decisions.parquet"),
+    }
+    meetings = pd.read_parquet(DATA / "static_meetings.parquet")
+
+    fake = _FakeSt()
+    orig_sa_st, orig_da_st = sa.st, da.st
+    sa.st = da.st = fake
+    try:
+        # POWELL fully coded at the 2019 meeting -> resume there (speaker 2),
+        # not at the first meeting in sample order (1979).
+        for i in range(1, 6):
+            fake.session_state.records[f"20190731|POWELL|d00{i}"] = {"completed": True}
+        ymd, idx = sa._find_first_incomplete(bundle, meetings)
+        check(ymd == "20190731" and idx == 1,
+              f"static resume returns started meeting, next speaker (got {ymd}, {idx})")
+
+        fake.session_state.records.clear()
+        ymd, idx = sa._find_first_incomplete(bundle, meetings)
+        check(ymd == "19791006" and idx == 0,
+              "static resume with no work falls back to first meeting")
+
+        # Dynamic: one YELLEN/ZLB cell coded -> resume on YELLEN's next
+        # meeting, not the alphabetically first member.
+        cells = pd.read_parquet(DATA / "dynamic_cells.parquet").sort_values(
+            ["decision_ymd", "decision_id", "stablespeaker", "seq"])
+        fake.session_state.records["20081216|d006|20071211|YELLEN"] = {"completed": True}
+        row = da._find_first_incomplete(cells)
+        check(row["stablespeaker"] == "YELLEN" and int(row["seq"]) == 2,
+              f"dynamic resume returns started trajectory, next meeting "
+              f"(got {row['stablespeaker']}, seq {row['seq']})")
+
+        fake.session_state.records.clear()
+        row = da._find_first_incomplete(cells)
+        check(int(row["seq"]) == 1, "dynamic resume with no work falls back to first cell")
+    finally:
+        sa.st, da.st = orig_sa_st, orig_da_st
+
+
 if __name__ == "__main__":
     test_data_files()
     test_quote_logic()
     test_export_roundtrip()
     test_apps_import()
+    test_resume_prefers_started_work()
     print()
     if FAILURES:
         print(f"{len(FAILURES)} FAILURES")
