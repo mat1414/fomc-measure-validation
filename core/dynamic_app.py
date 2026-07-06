@@ -45,10 +45,25 @@ def _member_progress(cells: pd.DataFrame) -> tuple[int, int]:
 
 
 def _find_first_incomplete(all_cells: pd.DataFrame):
-    for _, row in all_cells.iterrows():
-        if not st.session_state.records.get(_cell_key(row), {}).get("completed"):
-            return row
-    return None
+    """Next cell to work on. Prefer a member trajectory the coder has already
+    started (so restoring a save file resumes where they left off) over the
+    first incomplete trajectory in sample order."""
+    records = st.session_state.records
+    fallback = None
+    for _, group in all_cells.groupby(
+        ["decision_ymd", "decision_id", "stablespeaker"], sort=False
+    ):
+        group = group.sort_values("seq")
+        status = [bool(records.get(_cell_key(r), {}).get("completed"))
+                  for _, r in group.iterrows()]
+        if all(status):
+            continue
+        first_inc = group.iloc[status.index(False)]
+        if fallback is None:
+            fallback = first_inc
+        if any(status):
+            return first_inc
+    return fallback
 
 
 def run_dynamic_app() -> None:

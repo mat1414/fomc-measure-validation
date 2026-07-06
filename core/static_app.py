@@ -56,13 +56,22 @@ def _speaker_complete(bundle: dict, ymd: str, speaker: str) -> tuple[int, int]:
 
 
 def _find_first_incomplete(bundle: dict, meetings: pd.DataFrame):
+    """Next cell to work on. Prefer a meeting the coder has already started
+    (so restoring a save file resumes where they left off) over the first
+    incomplete meeting in sample order."""
+    fallback = None
     for _, mrow in meetings.iterrows():
         ymd = mrow["ymd"]
-        for idx, speaker in enumerate(_meeting_speakers(bundle, ymd)):
-            done, total = _speaker_complete(bundle, ymd, speaker)
-            if done < total:
-                return ymd, idx
-    return None, None
+        totals = [_speaker_complete(bundle, ymd, s)
+                  for s in _meeting_speakers(bundle, ymd)]
+        first_inc = next((i for i, (d, t) in enumerate(totals) if d < t), None)
+        if first_inc is None:
+            continue
+        if fallback is None:
+            fallback = (ymd, first_inc)
+        if sum(d for d, _ in totals) > 0:
+            return ymd, first_inc
+    return fallback if fallback else (None, None)
 
 
 def _render_decision_context(spec: dict, bundle: dict, ymd: str, meeting_row) -> None:
