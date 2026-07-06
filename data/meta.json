@@ -1,5 +1,5 @@
 {
-  "built_at": "2026-07-06T14:14:21",
+  "built_at": "2026-07-06T14:48:19",
   "data_version": "b23a5834a0ae",
   "sources": {
     "transcripts": "E:\\Research Dropbox\\Ben Matthies\\NotreDame\\Research\\_earlystage\\fomctidy\\data\\transcripts.dta",
@@ -29,6 +29,10 @@
     "dynamic_cells.parquet": 153,
     "transcripts_view.parquet": 10833
   },
+  "provenance_notes": [
+    "Transcripts are read from Ben's Dropbox-synced copy of fomctidy; the scoring pipeline read the same file from Kaushik's Dropbox. The per-row quote_match statistics act as a cross-copy consistency check.",
+    "Instruction prompts are extracted from the current v5 scoring scripts at build time; if those scripts are edited after a scoring run, rebuild and verify prompts against the stored batch inputs."
+  ],
   "quote_found_nonzero": {
     "alignment": {
       "found": 268,

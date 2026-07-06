@@ -393,6 +393,16 @@ def build_dynamic(transcripts, linked, dyn_scores):
         print(f"Dynamic {dymd} {did} ({entry['short_name']}): "
               f"{len(meetings)} meetings x {len(entry['members'])} members")
 
+        # Invariant: a trimmed window must be the N meetings immediately before
+        # adoption, i.e. its meetings_back values are exactly 1..N.
+        retained = sub[sub["meeting_ymd"].astype(str).isin(meetings)]
+        mb = set(retained["meetings_back"].astype(int))
+        expected = set(range(1, len(meetings) + 1))
+        if mb != expected:
+            raise ValueError(
+                f"{dymd} {did}: window meetings_back {sorted(mb)} != {sorted(expected)}"
+            )
+
         for member in entry["members"]:
             for seq, meeting_ymd in enumerate(meetings, start=1):
                 rows = sub[
@@ -548,6 +558,14 @@ def main() -> None:
             for name, path in SOURCE_FILES.items()
         },
         "counts": {name: len(df) for name, df in outputs.items()},
+        "provenance_notes": [
+            "Transcripts are read from Ben's Dropbox-synced copy of fomctidy; the "
+            "scoring pipeline read the same file from Kaushik's Dropbox. The per-row "
+            "quote_match statistics act as a cross-copy consistency check.",
+            "Instruction prompts are extracted from the current v5 scoring scripts at "
+            "build time; if those scripts are edited after a scoring run, rebuild and "
+            "verify prompts against the stored batch inputs.",
+        ],
         "quote_found_nonzero": {
             "alignment": _stats(align_scores, "nonzero"),
             "adoption": _stats(adopt_out, "positive"),

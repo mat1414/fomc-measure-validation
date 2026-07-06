@@ -40,22 +40,26 @@ def _score_row(bundle: dict, ymd: str, speaker: str, decision_id: str):
     return rows.iloc[0] if len(rows) else None
 
 
-def _speaker_complete(ymd: str, speaker: str, decision_ids: list[str]) -> tuple[int, int]:
+def _scored_ids(bundle: dict, ymd: str, speaker: str) -> list[str]:
+    """Decision ids that actually have a Claude score for this speaker — the
+    only pairs the coder can (and must) complete."""
+    s = bundle["scores"]
+    return list(s[(s["ymd"] == ymd) & (s["stablespeaker"] == speaker)]["decision_id"])
+
+
+def _speaker_complete(bundle: dict, ymd: str, speaker: str) -> tuple[int, int]:
     records = st.session_state.records
-    done = 0
-    for did in decision_ids:
-        key = f"{ymd}|{speaker}|{did}"
-        if records.get(key, {}).get("completed"):
-            done += 1
-    return done, len(decision_ids)
+    scored = _scored_ids(bundle, ymd, speaker)
+    done = sum(1 for did in scored
+               if records.get(f"{ymd}|{speaker}|{did}", {}).get("completed"))
+    return done, len(scored)
 
 
 def _find_first_incomplete(bundle: dict, meetings: pd.DataFrame):
     for _, mrow in meetings.iterrows():
         ymd = mrow["ymd"]
-        decision_ids = list(_meeting_decisions(bundle, ymd)["decision_id"])
         for idx, speaker in enumerate(_meeting_speakers(bundle, ymd)):
-            done, total = _speaker_complete(ymd, speaker, decision_ids)
+            done, total = _speaker_complete(bundle, ymd, speaker)
             if done < total:
                 return ymd, idx
     return None, None
@@ -69,15 +73,17 @@ def _render_decision_context(spec: dict, bundle: dict, ymd: str, meeting_row) ->
             "evidence of the adopted policy)."
         )
         for _, row in decisions.iterrows():
-            st.markdown(f"**{row['decision_id']}** — {row['description']}")
+            st.markdown(f"**{row['decision_id']}** — {ui.md_escape(row['description'])}")
             st.caption(
                 f"Type: {row['type']} | Communication subtype: {row['communication_subtype']} | "
-                f"Policy direction: {row['policy_direction']} | "
-                f"Accommodation score: {row['decision_score']}"
+                f"Policy direction: {row['policy_direction']}"
             )
-            st.markdown(f"*Adopted-policy evidence:* {row['adopted_policy_evidence']}")
+            st.markdown("*Adopted-policy evidence:*")
+            ui.render_verbatim(row["adopted_policy_evidence"])
             st.caption(
-                f"Matched alternatives (metadata, NOT shown to Claude): {row['matched_alternatives']}"
+                "Metadata, NOT shown to Claude — "
+                f"Accommodation score: {row['decision_score']} | "
+                f"Matched alternatives: {row['matched_alternatives']}"
             )
             st.divider()
 
@@ -139,10 +145,12 @@ def run_static_app(spec: dict) -> None:
     prompts = load_prompts()
     meetings = bundle["meetings"]
 
+    ui.show_flash()
+
     # ------------------------------------------------------------------ sidebar
     with st.sidebar:
         st.title(f"{spec['icon']} {spec['short_title']}")
-        ui.sidebar_coder_and_restore(spec, STATIC_KEY_FIELDS)
+        ui.sidebar_coder_and_restore(spec, STATIC_KEY_FIELDS, meta["data_version"])
 
         st.divider()
         st.header("Meeting")
@@ -162,13 +170,13 @@ def run_static_app(spec: dict) -> None:
 
         if st.session_state.selected_meeting:
             ymd = st.session_state.selected_meeting
-            decision_ids = list(_meeting_decisions(bundle, ymd)["decision_id"])
             speakers = _meeting_speakers(bundle, ymd)
 
             st.divider()
             st.header("Progress")
-            done_pairs = sum(_speaker_complete(ymd, s, decision_ids)[0] for s in speakers)
-            total_pairs = len(speakers) * len(decision_ids)
+            totals = [_speaker_complete(bundle, ymd, s) for s in speakers]
+            done_pairs = sum(d for d, _ in totals)
+            total_pairs = sum(t for _, t in totals)
             st.write(f"**This meeting:** {done_pairs} / {total_pairs} assessments")
             if total_pairs:
                 st.progress(done_pairs / total_pairs)
@@ -186,7 +194,7 @@ def run_static_app(spec: dict) -> None:
             st.divider()
             st.header("Speakers")
             for idx, speaker in enumerate(speakers):
-                done, total = _speaker_complete(ymd, speaker, decision_ids)
+                done, total = _speaker_complete(bundle, ymd, speaker)
                 if done == total and total > 0:
                     icon = "+"
                 elif idx == st.session_state.speaker_idx:
@@ -213,18 +221,20 @@ def run_static_app(spec: dict) -> None:
         if jymd is not None:
             st.session_state.selected_meeting = jymd
             st.session_state.speaker_idx = jidx
-            st.toast("Progress restored — jumping to the next incomplete speaker.")
+            ui.flash("Jumping to the next incomplete speaker.")
             st.rerun()
 
     if not st.session_state.selected_meeting:
         st.title(spec["title"])
         st.markdown(spec["intro"])
         st.markdown("### Meetings in this validation sample")
+        scores = bundle["scores"]
         for _, mrow in meetings.iterrows():
             n_dec = len(_meeting_decisions(bundle, mrow["ymd"]))
             n_spk = len(_meeting_speakers(bundle, mrow["ymd"]))
+            n_pairs = int((scores["ymd"] == mrow["ymd"]).sum())
             st.markdown(f"- **{mrow['label']}** — {n_dec} decisions x {n_spk} speakers "
-                        f"= {n_dec * n_spk} assessments")
+                        f"= {n_pairs} assessments")
         st.info("Select a meeting in the sidebar to begin.")
         st.stop()
 
@@ -232,6 +242,9 @@ def run_static_app(spec: dict) -> None:
     meeting_row = meetings[meetings["ymd"] == ymd].iloc[0]
     decisions = _meeting_decisions(bundle, ymd)
     speakers = _meeting_speakers(bundle, ymd)
+    if not speakers:
+        st.error("No scored speakers found for this meeting — pick another meeting.")
+        st.stop()
     if st.session_state.speaker_idx >= len(speakers):
         st.session_state.speaker_idx = 0
     speaker = speakers[st.session_state.speaker_idx]
@@ -261,7 +274,7 @@ def run_static_app(spec: dict) -> None:
     progress = ""
     decision_ids = list(decisions["decision_id"])
     for i, s in enumerate(speakers):
-        done, total = _speaker_complete(ymd, s, decision_ids)
+        done, total = _speaker_complete(bundle, ymd, s)
         progress += "[+] " if (done == total and total) else ("[>] " if i == idx else "[ ] ")
     st.caption(f"Progress: {progress}")
 
@@ -291,7 +304,7 @@ def run_static_app(spec: dict) -> None:
     for _, drow in decisions.iterrows():
         did = drow["decision_id"]
         srow = score_rows.get(did)
-        st.markdown(f"---\n**{did}** — {drow['description']}")
+        st.markdown(f"---\n**{did}** — {ui.md_escape(drow['description'])}")
         st.caption(f"Type: {drow['type']} | Direction: {drow['policy_direction']}")
 
         if srow is None:
@@ -302,7 +315,8 @@ def run_static_app(spec: dict) -> None:
         st.markdown(
             f"Claude's score: **{claude_score} ({spec['scale'][claude_score]})**"
         )
-        st.markdown(f"*Claude's evidence:* {srow['claude_evidence']}")
+        st.markdown("*Claude's evidence:*")
+        ui.render_verbatim(srow["claude_evidence"])
         ui.render_quote_badge(srow.get("quote_match"))
 
         key = f"{ymd}|{speaker}|{did}"
@@ -336,7 +350,8 @@ def run_static_app(spec: dict) -> None:
                         "description": drow["description"],
                         "claude_score": int(srow["claude_score"]),
                         "claude_evidence": srow["claude_evidence"],
-                        "quote_match": srow.get("quote_match"),
+                        "quote_match": (None if pd.isna(srow.get("quote_match"))
+                                        else str(srow.get("quote_match"))),
                         **values,
                         "completed": True,
                         "completed_at": now,
@@ -347,7 +362,6 @@ def run_static_app(spec: dict) -> None:
                 if idx < len(speakers) - 1:
                     st.session_state.speaker_idx = idx + 1
                 else:
-                    st.balloons()
-                    st.toast("Meeting complete! Download your save file, then pick the "
-                             "next meeting in the sidebar.")
+                    ui.flash("Meeting complete! Download your save file, then pick the "
+                             "next meeting in the sidebar.", balloons=True)
                 st.rerun()

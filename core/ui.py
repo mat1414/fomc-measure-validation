@@ -18,6 +18,28 @@ _SCROLLBOX_STYLE = (
     "font-size:0.92rem;"
 )
 
+# Markdown/KaTeX special characters. Data text (speeches, evidence, decision
+# descriptions) must never be handed to st.markdown unescaped: "$" opens KaTeX
+# math, "*"/"_" italicize, "[..]" links, etc.
+_MD_SPECIALS = set("\\`*_{}[]()#+!|$<>~")
+
+
+def md_escape(text) -> str:
+    """Escape a data string for literal display inside st.markdown text."""
+    return "".join("\\" + c if c in _MD_SPECIALS else c for c in str(text))
+
+
+def render_verbatim(text: str, font_size: str = "0.9rem") -> None:
+    """Show data text literally (no markdown/KaTeX interpretation).
+
+    Uses a <pre> block: in GFM, pre-blocks pass through raw until the closing
+    tag, so blank lines inside the text are safe."""
+    st.markdown(
+        f'<pre style="white-space:pre-wrap;font-family:inherit;font-size:{font_size};'
+        f'margin:0 0 0.5rem 0;">{html.escape(str(text))}</pre>',
+        unsafe_allow_html=True,
+    )
+
 
 def _escape_with_marks(text: str, ranges: list[tuple[int, int]]) -> str:
     """HTML-escape text, wrapping the given character ranges in <mark>."""
@@ -28,7 +50,9 @@ def _escape_with_marks(text: str, ranges: list[tuple[int, int]]) -> str:
         parts.append(f"<mark>{html.escape(text[lo:hi])}</mark>")
         cursor = hi
     parts.append(html.escape(text[cursor:]))
-    return "".join(parts)
+    # A blank line would terminate the raw-HTML block and hand the rest of the
+    # text to the markdown/KaTeX parser — convert newlines to <br>.
+    return "".join(parts).replace("\n", "<br>")
 
 
 def render_speeches(text: str, evidences: list[str], height: int = 460) -> None:
@@ -41,6 +65,24 @@ def render_speeches(text: str, evidences: list[str], height: int = 460) -> None:
     )
     if evidences and not ranges:
         st.caption("No evidence quotes could be located verbatim in this text.")
+
+
+# ---------------------------------------------------------------------------
+# Flash messages that survive st.rerun (toasts/balloons fired right before a
+# rerun are killed by it, so stash them in session state instead).
+# ---------------------------------------------------------------------------
+def flash(message: str, balloons: bool = False) -> None:
+    st.session_state["_flash"] = (message, balloons)
+
+
+def show_flash() -> None:
+    pending = st.session_state.pop("_flash", None)
+    if pending:
+        message, balloons = pending
+        if balloons:
+            st.balloons()
+        if message:
+            st.toast(message)
 
 
 QUOTE_BADGES = {
@@ -192,7 +234,7 @@ def missing_fields(values: dict) -> list[str]:
 # ---------------------------------------------------------------------------
 # Sidebar sections shared by all apps
 # ---------------------------------------------------------------------------
-def sidebar_coder_and_restore(spec: dict, key_fields: list[str]) -> None:
+def sidebar_coder_and_restore(spec: dict, key_fields: list[str], data_version: str) -> None:
     st.header("Coder ID")
     coder_id = st.text_input(
         "Enter your ID", value=st.session_state.coder_id,
@@ -217,10 +259,30 @@ def sidebar_coder_and_restore(spec: dict, key_fields: list[str]) -> None:
                     st.session_state.coder_id = restored["coder_id"]
                 if restored["started_at"]:
                     st.session_state.started_at = restored["started_at"]
-                st.session_state.records.update(restored["records"])
-                st.session_state.unsaved_count = 0
+
+                # Merge, never blindly overwrite: for a key present in both the
+                # session and the file, keep whichever assessment is newer.
+                current = st.session_state.records
+                kept = 0
+                for key, rec in restored["records"].items():
+                    mine = current.get(key)
+                    if mine is not None and (
+                        (mine.get("completed_at") or "") >= (rec.get("completed_at") or "")
+                    ):
+                        kept += 1
+                        continue
+                    current[key] = rec
+                if kept:
+                    message += f" Kept {kept} newer in-session assessment(s)."
+                # Do NOT reset unsaved_count: any work done in this session is
+                # still absent from every downloaded file.
+
+                file_version = restored.get("data_version")
+                if file_version and file_version != data_version:
+                    # persists across reruns; displayed by sidebar_downloads
+                    st.session_state["_version_mismatch"] = file_version
                 st.session_state.jump_to_incomplete = True
-                st.success(message)
+                flash(message)
                 st.rerun()
             else:
                 st.error(message)
@@ -246,12 +308,13 @@ def sidebar_downloads(spec: dict, columns: list[str], data_version: str) -> None
             data=json_data, file_name=json_name, mime="application/json",
             use_container_width=True,
         )
-        clicked_csv = st.download_button(
+        st.download_button(
             "Download CSV (for analysis)",
             data=csv_data, file_name=csv_name, mime="text/csv",
             use_container_width=True,
         )
-        if clicked_json or clicked_csv:
+        # Only the JSON file can be restored, so only it counts as a save.
+        if clicked_json:
             st.session_state.unsaved_count = 0
     else:
         st.info("Complete some assessments to enable downloads.")
@@ -260,6 +323,13 @@ def sidebar_downloads(spec: dict, columns: list[str], data_version: str) -> None
         st.warning(
             f"{st.session_state.unsaved_count} assessments since your last download. "
             "Download the JSON save file now — progress is lost if the connection drops."
+        )
+    mismatch = st.session_state.get("_version_mismatch")
+    if mismatch:
+        st.warning(
+            f"A restored save file was made against data version {mismatch}, but the "
+            f"app is running data version {data_version}. The restored assessments may "
+            "refer to earlier scores or text — flag this to the research team."
         )
     st.caption(f"Data version {data_version} - app 1.0")
 

@@ -34,14 +34,30 @@ def record_key(record: dict, key_fields: list[str]) -> str:
     return "|".join(str(record[f]) for f in key_fields)
 
 
+def _null_if_na(value):
+    """Turn NaN/NA scalars into None so JSON stays valid (json.dumps would
+    otherwise emit a bare NaN token, which strict parsers reject)."""
+    try:
+        if value is not None and pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+    return value
+
+
 def stamp_records(records: dict, tool: str, data_version: str, coder_id: str) -> list[dict]:
+    """Attach provenance stamps. Deliberate precedence: a record that already
+    carries tool/data_version/coder_id (i.e., one restored from an earlier save
+    file) keeps its original stamps — that is who coded it and against which
+    data build. Records created in this session have no stamps and receive the
+    current ones."""
     stamped = []
     for rec in records.values():
         stamped.append({
             "tool": tool,
             "data_version": data_version,
             "coder_id": coder_id,
-            **rec,
+            **{k: _null_if_na(v) for k, v in rec.items()},
         })
     return stamped
 

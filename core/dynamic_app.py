@@ -72,10 +72,12 @@ def run_dynamic_app() -> None:
     task_keys = [_task_key(r) for _, r in tasks.iterrows()]
     task_labels = {_task_key(r): r["short_name"] for _, r in tasks.iterrows()}
 
+    ui.show_flash()
+
     # ------------------------------------------------------------------ sidebar
     with st.sidebar:
         st.title(f"{spec['icon']} {spec['short_title']}")
-        ui.sidebar_coder_and_restore(spec, DYNAMIC_KEY_FIELDS)
+        ui.sidebar_coder_and_restore(spec, DYNAMIC_KEY_FIELDS, meta["data_version"])
 
         st.divider()
         st.header("Decision")
@@ -144,7 +146,7 @@ def run_dynamic_app() -> None:
             st.session_state.dyn_task = _task_key(nxt)
             st.session_state.dyn_member = nxt["stablespeaker"]
             st.session_state.dyn_seq = int(nxt["seq"])
-            st.toast("Progress restored — jumping to the next incomplete cell.")
+            ui.flash("Jumping to the next incomplete cell.")
             st.rerun()
 
     if not st.session_state.dyn_task:
@@ -187,13 +189,14 @@ def run_dynamic_app() -> None:
     st.markdown(spec["intro"])
 
     with st.expander("Decision packet (what Claude saw for this decision)", expanded=True):
-        st.info(cell["description"])
+        st.info(ui.md_escape(cell["description"]))
         st.caption(
             f"Adopted: {_fmt_ymd(dymd)} | Type: {cell['type']} | "
             f"Communication subtype: {cell['communication_subtype']} | "
             f"Policy direction: {cell['policy_direction']}"
         )
-        st.markdown(f"*Adopted-policy evidence:* {cell['adopted_policy_evidence']}")
+        st.markdown("*Adopted-policy evidence:*")
+        ui.render_verbatim(cell["adopted_policy_evidence"])
 
     ui.render_scale_reference(spec)
     ui.render_instruction_prompt(prompts[spec["prompt_key"]])
@@ -255,11 +258,13 @@ def run_dynamic_app() -> None:
     # ---- Claude's assessment + human form
     st.divider()
     claude_score = int(cell["claude_score"])
-    st.markdown(f"### Claude's assessment")
+    st.markdown("### Claude's assessment")
     st.markdown(f"Score: **{claude_score} ({spec['scale'][claude_score]})**")
-    st.markdown(f"*Evidence:* {cell['claude_evidence']}")
+    st.markdown("*Evidence:*")
+    ui.render_verbatim(cell["claude_evidence"])
     if cell["claude_reasoning"]:
-        st.markdown(f"*Reasoning:* {cell['claude_reasoning']}")
+        st.markdown("*Reasoning:*")
+        ui.render_verbatim(cell["claude_reasoning"])
     ui.render_quote_badge(cell.get("quote_match"))
 
     st.markdown("### Your assessment")
@@ -288,7 +293,8 @@ def run_dynamic_app() -> None:
                     "claude_score": claude_score,
                     "claude_evidence": cell["claude_evidence"],
                     "claude_reasoning": cell["claude_reasoning"],
-                    "quote_match": cell.get("quote_match"),
+                    "quote_match": (None if pd.isna(cell.get("quote_match"))
+                                    else str(cell.get("quote_match"))),
                     **values,
                     "completed": True,
                     "completed_at": datetime.now().isoformat(timespec="seconds"),
@@ -299,15 +305,22 @@ def run_dynamic_app() -> None:
                 if pos < len(seqs) - 1:
                     st.session_state.dyn_seq = seqs[pos + 1]
                 else:
-                    # member trajectory done — move to next incomplete member
-                    nxt = _find_first_incomplete(task_cells)
-                    if nxt is not None:
-                        st.session_state.dyn_member = nxt["stablespeaker"]
-                        st.session_state.dyn_seq = int(nxt["seq"])
-                        st.toast(f"{member}'s trajectory complete — next: "
-                                 f"{nxt['stablespeaker']}. Download a save file!")
+                    # end of the timeline — first check for meetings the coder
+                    # skipped for THIS member before declaring the trajectory done
+                    own = _find_first_incomplete(mcells)
+                    if own is not None:
+                        st.session_state.dyn_seq = int(own["seq"])
+                        ui.flash(f"You skipped some of {member}'s meetings — "
+                                 "jumping back to the first incomplete one.")
                     else:
-                        st.balloons()
-                        st.toast("Decision complete! Download your save file, then pick "
-                                 "the next decision in the sidebar.")
+                        nxt = _find_first_incomplete(task_cells)
+                        if nxt is not None:
+                            st.session_state.dyn_member = nxt["stablespeaker"]
+                            st.session_state.dyn_seq = int(nxt["seq"])
+                            ui.flash(f"{member}'s trajectory complete — next: "
+                                     f"{nxt['stablespeaker']}. Download a save file!")
+                        else:
+                            ui.flash("Decision complete! Download your save file, then "
+                                     "pick the next decision in the sidebar.",
+                                     balloons=True)
                 st.rerun()

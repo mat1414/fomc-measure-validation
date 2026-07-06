@@ -145,6 +145,42 @@ def test_export_roundtrip():
     check(set(DYNAMIC_KEY_FIELDS) <= set(DYNAMIC_RECORD_COLUMNS),
           "dynamic key fields are all in the record columns")
 
+    # NaN values (e.g. null quote_match from parquet) must not produce bare
+    # NaN tokens, which are invalid JSON.
+    nan_records = {
+        "20081216|KOHN|d002": {
+            "ymd": "20081216", "stablespeaker": "KOHN", "decision_id": "d002",
+            "decision_index": 2, "description": "x", "claude_score": 0,
+            "claude_evidence": "No explicit statement found.",
+            "quote_match": float("nan"), "supports_evidence": "yes",
+            "human_score": 0, "confidence": "high", "notes": "",
+            "completed": True, "completed_at": "2026-07-06T12:00:00",
+        }
+    }
+    js_nan, _ = export.generate_results_json(
+        spec["tool"], "v1", "BM", nan_records, "2026-07-06T11:00:00",
+        STATIC_RECORD_COLUMNS)
+    check("NaN" not in js_nan, "NaN scalars are exported as null, not bare NaN")
+
+    def _reject_nan(_):
+        raise ValueError("bare NaN in JSON")
+    parsed_strict = json.loads(js_nan, parse_constant=_reject_nan)
+    check(parsed_strict["records"][0]["quote_match"] is None,
+          "null quote_match survives as JSON null under a strict parser")
+
+    # Restored records keep their original stamps (provenance), new ones get
+    # the current session's stamps.
+    restored_rec = dict(records["20081216|YELLEN|d001"])
+    restored_rec.update({"tool": "position_alignment", "data_version": "OLD",
+                         "coder_id": "RA1"})
+    mixed = {"20081216|YELLEN|d001": restored_rec, **nan_records}
+    rows = export.stamp_records(mixed, "position_alignment", "NEW", "RA2")
+    by_key = {r["stablespeaker"]: r for r in rows}
+    check(by_key["YELLEN"]["data_version"] == "OLD" and by_key["YELLEN"]["coder_id"] == "RA1",
+          "restored record keeps its original data_version/coder_id")
+    check(by_key["KOHN"]["data_version"] == "NEW" and by_key["KOHN"]["coder_id"] == "RA2",
+          "new record gets the current data_version/coder_id")
+
 
 def test_apps_import():
     print("App engines import cleanly:")
