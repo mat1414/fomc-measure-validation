@@ -35,11 +35,11 @@ DYNAMIC_SAMPLE = [
         "window": "all",  # 8 meetings: Dec 2007 - Oct 2008
     },
     {
-        "decision_ymd": "20110809",
-        "decision_id": "d002",
-        "short_name": "Calendar guidance (Aug 2011)",
-        "members": ["KOCHERLAKOTA", "EVANS", "PLOSSER", "YELLEN", "LOCKHART", "BERNANKE"],
-        "window": "all",  # 8 meetings: Aug 2010 - Jun 2011
+        "decision_ymd": "20121212",
+        "decision_id": "d003",
+        "short_name": "Evans rule (Dec 2012)",
+        "members": ["EVANS", "YELLEN", "KOCHERLAKOTA", "LACKER", "PLOSSER", "BERNANKE"],
+        "window": "last8",  # Dec 2011 - Oct 2012 (full window is 10)
     },
     {
         "decision_ymd": "20151216",
