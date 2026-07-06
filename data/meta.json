@@ -1,6 +1,6 @@
 {
-  "built_at": "2026-07-06T16:10:16",
-  "data_version": "56f75619c593",
+  "built_at": "2026-07-06T16:26:46",
+  "data_version": "97f03e31098d",
   "sources": {
     "transcripts": "E:\\Research Dropbox\\Ben Matthies\\NotreDame\\Research\\_earlystage\\fomctidy\\data\\transcripts.dta",
     "adopted_decisions": "E:\\Research Dropbox\\Ben Matthies\\NotreDame\\Research\\fed_wsj\\kv_analysis\\output_v5\\claude_output\\adopted_decisions.pkl",
@@ -20,14 +20,14 @@
     "adoption_contribution": "2026-06-18T21:39:22"
   },
   "counts": {
-    "static_meetings.parquet": 5,
-    "static_decisions.parquet": 33,
-    "static_alternatives.parquet": 13,
-    "static_speeches.parquet": 87,
-    "scores_alignment.parquet": 569,
-    "scores_adoption.parquet": 569,
+    "static_meetings.parquet": 3,
+    "static_decisions.parquet": 18,
+    "static_alternatives.parquet": 10,
+    "static_speeches.parquet": 54,
+    "scores_alignment.parquet": 324,
+    "scores_adoption.parquet": 324,
     "dynamic_cells.parquet": 153,
-    "transcripts_view.parquet": 11349
+    "transcripts_view.parquet": 10441
   },
   "provenance_notes": [
     "Transcripts are read from Ben's Dropbox-synced copy of fomctidy; the scoring pipeline read the same file from Kaushik's Dropbox. The per-row quote_match statistics act as a cross-copy consistency check.",
@@ -35,16 +35,16 @@
   ],
   "quote_found_nonzero": {
     "alignment": {
-      "found": 268,
-      "not_found": 37,
-      "partial": 14,
-      "total": 319
+      "found": 181,
+      "not_found": 30,
+      "partial": 10,
+      "total": 221
     },
     "adoption": {
-      "found": 114,
-      "not_found": 24,
-      "partial": 5,
-      "total": 143
+      "found": 83,
+      "not_found": 16,
+      "partial": 2,
+      "total": 101
     },
     "dynamic": {
       "found": 99,

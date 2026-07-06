@@ -47,7 +47,9 @@ def test_data_files():
     meetings = pd.read_parquet(DATA / "static_meetings.parquet")
     decisions = pd.read_parquet(DATA / "static_decisions.parquet")
     speeches = pd.read_parquet(DATA / "static_speeches.parquet")
-    check(len(meetings) == 5, "5 static meetings")
+    check(len(meetings) == 3, "3 static meetings (the old paper's contexts)")
+    check(set(meetings["ymd"]) == {"19940816", "20081216", "20110809"},
+          "static meetings are 1994-08-16, 2008-12-16, 2011-08-09")
 
     for scores_file in ("scores_alignment.parquet", "scores_adoption.parquet"):
         scores = pd.read_parquet(DATA / scores_file)
@@ -214,17 +216,23 @@ def test_resume_prefers_started_work():
     orig_sa_st, orig_da_st = sa.st, da.st
     sa.st = da.st = fake
     try:
-        # POWELL fully coded at the 2019 meeting -> resume there (speaker 2),
-        # not at the first meeting in sample order (1979).
-        for i in range(1, 6):
-            fake.session_state.records[f"20190731|POWELL|d00{i}"] = {"completed": True}
+        # First speaker fully coded at the 2008 meeting -> resume there
+        # (speaker 2), not at the first meeting in sample order (1994).
+        speeches = bundle["speeches"]
+        first_speaker = speeches[speeches["ymd"] == "20081216"].sort_values(
+            "speaker_order").iloc[0]["stablespeaker"]
+        scores = bundle["scores"]
+        scored_ids = scores[(scores["ymd"] == "20081216")
+                            & (scores["stablespeaker"] == first_speaker)]["decision_id"]
+        for did in scored_ids:
+            fake.session_state.records[f"20081216|{first_speaker}|{did}"] = {"completed": True}
         ymd, idx = sa._find_first_incomplete(bundle, meetings)
-        check(ymd == "20190731" and idx == 1,
+        check(ymd == "20081216" and idx == 1,
               f"static resume returns started meeting, next speaker (got {ymd}, {idx})")
 
         fake.session_state.records.clear()
         ymd, idx = sa._find_first_incomplete(bundle, meetings)
-        check(ymd == "19791006" and idx == 0,
+        check(ymd == "19940816" and idx == 0,
               "static resume with no work falls back to first meeting")
 
         # Dynamic: one YELLEN/ZLB cell coded -> resume on YELLEN's next

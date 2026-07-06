@@ -14,12 +14,12 @@ measures. Human coders ("RAs") review Claude's score for each cell — seeing
 
 Defined in [sample_config.py](sample_config.py):
 
-- **Static tools**: five landmark meetings (Oct 1979, Aug 1994, Dec 2008,
-  Aug 2011, Jul 2019), every scored speaker — 569 speaker x decision pairs
-  per measure, organized as one screen per speaker.
-- **Dynamic tool**: three landmark decisions (ZLB Dec 2008, calendar guidance
-  Aug 2011, Evans rule Dec 2012), 6 stratified members each, coded across the
-  full run-up window oldest-meeting-first, plus a 9-cell QE1 audit slice —
+- **Static tools**: the three meetings used for the old paper's validation
+  (Aug 1994, Dec 2008, Aug 2011), every scored speaker — 324 speaker x
+  decision pairs per measure, organized as one screen per speaker.
+- **Dynamic tool**: three landmark decisions (ZLB Dec 2008, Evans rule
+  Dec 2012, Liftoff Dec 2015), 6 stratified members each, coded across the
+  run-up window oldest-meeting-first, plus a 9-cell QE1 audit slice —
   153 cells total.
 
 ## How the RAs use it

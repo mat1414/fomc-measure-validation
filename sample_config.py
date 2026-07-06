@@ -8,14 +8,13 @@ commit the regenerated ``data/`` files.
 
 # ---------------------------------------------------------------------------
 # Static tools (position alignment + adoption contribution)
-# Five landmark meetings; every scored speaker at each meeting.
+# The three meetings used for the old paper's human-coding validation;
+# every scored speaker at each meeting.
 # ---------------------------------------------------------------------------
 STATIC_MEETINGS = {
-    "19791006": "October 6, 1979 (Volcker's Saturday Night Special)",
     "19940816": "August 16, 1994 (Greenspan tightening cycle)",
     "20081216": "December 16, 2008 (Financial crisis ZLB)",
     "20110809": "August 9, 2011 (Calendar guidance introduced)",
-    "20190731": "July 31, 2019 (Powell mid-cycle cut)",
 }
 
 # ---------------------------------------------------------------------------
