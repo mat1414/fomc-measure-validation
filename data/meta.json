@@ -1,0 +1,53 @@
+{
+  "built_at": "2026-07-06T14:14:21",
+  "data_version": "b23a5834a0ae",
+  "sources": {
+    "transcripts": "E:\\Research Dropbox\\Ben Matthies\\NotreDame\\Research\\_earlystage\\fomctidy\\data\\transcripts.dta",
+    "adopted_decisions": "E:\\Research Dropbox\\Ben Matthies\\NotreDame\\Research\\fed_wsj\\kv_analysis\\output_v5\\claude_output\\adopted_decisions.pkl",
+    "decision_alternative_links": "E:\\Research Dropbox\\Ben Matthies\\NotreDame\\Research\\fed_wsj\\kv_analysis\\output_v5\\claude_output\\decision_alternative_links.pkl",
+    "alternatives": "E:\\Research Dropbox\\Ben Matthies\\NotreDame\\Research\\fed_wsj\\kv_analysis\\output_v5\\claude_output\\alternatives.pkl",
+    "position_alignment": "E:\\Research Dropbox\\Ben Matthies\\NotreDame\\Research\\fed_wsj\\kv_analysis\\output_v5\\claude_output\\analysis_files\\position_alignment.pkl",
+    "dynamic_position_alignment": "E:\\Research Dropbox\\Ben Matthies\\NotreDame\\Research\\fed_wsj\\kv_analysis\\output_v5\\claude_output\\analysis_files\\dynamic_position_alignment.pkl",
+    "adoption_contribution": "E:\\Research Dropbox\\Ben Matthies\\NotreDame\\Research\\fed_wsj\\kv_analysis\\output_v5\\claude_output\\analysis_files\\adoption_contribution.pkl"
+  },
+  "source_mtimes": {
+    "transcripts": "2026-06-16T11:45:37",
+    "adopted_decisions": "2026-06-12T16:13:47",
+    "decision_alternative_links": "2026-06-12T19:58:18",
+    "alternatives": "2026-06-12T16:13:47",
+    "position_alignment": "2026-06-26T16:27:24",
+    "dynamic_position_alignment": "2026-06-22T16:26:27",
+    "adoption_contribution": "2026-06-18T21:39:22"
+  },
+  "counts": {
+    "static_meetings.parquet": 5,
+    "static_decisions.parquet": 33,
+    "static_alternatives.parquet": 13,
+    "static_speeches.parquet": 87,
+    "scores_alignment.parquet": 569,
+    "scores_adoption.parquet": 569,
+    "dynamic_cells.parquet": 153,
+    "transcripts_view.parquet": 10833
+  },
+  "quote_found_nonzero": {
+    "alignment": {
+      "found": 268,
+      "not_found": 37,
+      "partial": 14,
+      "total": 319
+    },
+    "adoption": {
+      "found": 114,
+      "not_found": 24,
+      "partial": 5,
+      "total": 143
+    },
+    "dynamic": {
+      "found": 82,
+      "partial": 11,
+      "not_found": 9,
+      "total": 102
+    }
+  },
+  "warnings": []
+}
