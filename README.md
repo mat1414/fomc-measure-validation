@@ -62,7 +62,34 @@ the instruction prompts from the source scripts. In each app:
 2. On [share.streamlit.io](https://share.streamlit.io), create **three**
    apps from the same repo, one per main file: `app_alignment.py`,
    `app_dynamic.py`, `app_adoption.py`.
-3. Give each RA the URL for their assigned tool.
+3. In each app's **Settings** (three-dot menu), set **Python version = 3.13**.
+4. Give each RA the URL for their assigned tool.
+
+## If an app shows "Oh no. Error running app"
+
+The real error is only visible when the app owner is signed in: open the app
+URL and click **Manage app** (bottom right) to see the boot log.
+
+Known failure modes (July 2026 outages):
+
+- **`Segmentation fault` in the log.** Community Cloud has had a
+  platform-level bug since ~2026-07-10 where a container occasionally
+  segfaults at boot or on a session reconnect, independent of package
+  versions. **Fix: just reboot the app** (three-dot menu -> Reboot, either in
+  the console app list or the Manage-app panel). One retry is usually enough.
+- **Python version reset.** The platform migrated apps to Python 3.14 on
+  ~2026-07-11, which broke boot outright. Check Settings -> Python version is
+  **3.13** for all three apps.
+- **Dependency drift.** The cloud re-resolves `requirements.txt` from scratch
+  on every reboot/wake, so the file pins the *entire* dependency tree, and
+  `streamlit` is deliberately held at **1.56.0** — the last release using the
+  battle-tested Tornado server. streamlit >= 1.57 ships a new
+  uvicorn/websockets server that segfaulted on Community Cloud (crash on
+  "Session with id ... is already connected"). Do not unpin or bump pins
+  without testing (see `tests/` and run the apps locally first).
+
+RA work is never lost to a crash **if they download the JSON save file**
+regularly — remind them.
 
 ## Local development
 
