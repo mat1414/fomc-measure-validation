@@ -1,4 +1,7 @@
-streamlit>=1.32
-pandas
-pyarrow
-numpy
+# Pinned to the stack verified working on Streamlit Cloud with Python 3.13 (2026-07-11).
+# Each app's Python version is pinned to 3.13 in its settings on share.streamlit.io —
+# the platform's move to Python 3.14 segfaulted the apps at boot on 2026-07-11.
+streamlit==1.59.1
+pandas==3.0.3
+numpy==2.5.1
+pyarrow==25.0.0
