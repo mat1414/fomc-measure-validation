@@ -1,7 +1,49 @@
-# Pinned to the stack verified working on Streamlit Cloud with Python 3.13 (2026-07-11).
-# Each app's Python version is pinned to 3.13 in its settings on share.streamlit.io —
-# the platform's move to Python 3.14 segfaulted the apps at boot on 2026-07-11.
-streamlit==1.59.1
+# Fully frozen environment — verified 2026-07-11 on Python 3.13 (local AppTest
+# of all three apps + repo test suite). Do not unpin.
+#
+# Why frozen: Streamlit Community Cloud re-resolves dependencies from scratch on
+# every reboot/wake, so anything unpinned silently drifts to the newest release.
+# That caused two outages in July 2026: (1) the platform's Python 3.14 migration
+# (each app's Python is now pinned to 3.13 in its settings on share.streamlit.io),
+# and (2) streamlit >= 1.57 replaced its Tornado web server with a new
+# uvicorn/starlette/websockets stack that segfaults on Community Cloud (crash on
+# session reconnect: "Session with id ... is already connected"). streamlit 1.56.0
+# is the last Tornado-based release.
+streamlit==1.56.0
+tornado==6.5.7
 pandas==3.0.3
 numpy==2.5.1
 pyarrow==25.0.0
+# --- transitive dependencies, frozen for determinism ---
+altair==6.2.2
+attrs==26.1.0
+blinker==1.9.0
+cachetools==7.1.4
+certifi==2026.6.17
+charset-normalizer==3.4.9
+click==8.4.2
+colorama==0.4.6
+gitdb==4.0.12
+GitPython==3.1.50
+idna==3.18
+Jinja2==3.1.6
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+MarkupSafe==3.0.3
+narwhals==2.23.0
+packaging==26.2
+pillow==12.3.0
+protobuf==7.35.1
+pydeck==0.9.3
+python-dateutil==2.9.0.post0
+referencing==0.37.0
+requests==2.34.2
+rpds-py==2026.6.3
+six==1.17.0
+smmap==5.0.3
+tenacity==9.1.4
+toml==0.10.2
+typing_extensions==4.16.0
+tzdata==2026.3
+urllib3==2.7.0
+watchdog==6.0.0
